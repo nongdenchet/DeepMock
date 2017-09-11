@@ -1,40 +1,49 @@
 package com.rain.deepmock;
 
-import com.deepmock.DeepMock;
-import com.deepmock.annotations.Mock;
-import com.deepmock.annotations.Stub;
-import com.deepmock.annotations.Target;
 import com.rain.deepmock.data.User;
 import com.rain.deepmock.data.UserEntity;
+import com.rain.deepmock.data.UserMapper;
 import com.rain.deepmock.data.UserRepo;
 import com.rain.deepmock.data.UserStore;
-import com.rain.deepmock.schedulers.Schedulers;
 import com.rain.deepmock.schedulers.TestSchedulers;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-public class UserRepoTest {
-    @Stub
-    Schedulers schedulers = new TestSchedulers();
+public class UserRepoMockTest {
+    private UserRepo userRepo;
+
     @Mock
     UserStore userStore;
-    @Target
-    UserRepo userRepo;
+    @Mock
+    UserMapper userMapper;
 
     @Before
     public void setUp() throws Exception {
-        DeepMock.inject(this);
+        MockitoAnnotations.initMocks(this);
+        userRepo = new UserRepo(new TestSchedulers(), userMapper, userStore);
         when(userStore.getUsers()).thenReturn(Arrays.asList(
                 new UserEntity("name1", "name1@gmail.com"),
                 new UserEntity("name2", "name2@gmail.com")
         ));
+        when(userMapper.toModel(any(UserEntity.class))).thenAnswer(new Answer<User>() {
+            @Override
+            public User answer(InvocationOnMock invocation) throws Throwable {
+                UserEntity userEntity = invocation.getArgument(0);
+                return new User(userEntity.getUsername(), userEntity.getEmail());
+            }
+        });
     }
 
     @Test
